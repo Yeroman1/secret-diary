@@ -38,24 +38,24 @@ class PageCard extends StatelessWidget {
     }
   }
 
-  String _getMoodEmoji(String? mood) {
+  IconData _getMoodIcon(String? mood) {
     switch (mood) {
       case 'ecstatic':
-        return '✨';
+        return Icons.auto_awesome;
       case 'happy':
-        return '😊';
+        return Icons.sentiment_very_satisfied;
       case 'calm':
-        return '🌿';
+        return Icons.spa;
       case 'pensive':
-        return '🌙';
+        return Icons.psychology;
       case 'sad':
-        return '🌧️';
+        return Icons.sentiment_dissatisfied;
       case 'anxious':
-        return '⚡';
+        return Icons.bolt;
       case 'angry':
-        return '🔥';
+        return Icons.local_fire_department;
       default:
-        return '📖';
+        return Icons.menu_book;
     }
   }
 
@@ -133,9 +133,10 @@ class PageCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 10),
                             ],
-                            Text(
-                              _getMoodEmoji(entry.mood),
-                              style: const TextStyle(fontSize: 16),
+                            Icon(
+                              _getMoodIcon(entry.mood),
+                              size: 16,
+                              color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -190,12 +191,22 @@ class PageCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         // Content Excerpt or Lock placeholder
                         if (entry.isLocked)
-                          Text(
-                            '🔒 This page is private and locked.',
-                            style: JournalTextStyles.journalBody(
-                              theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontSize: 13.0,
-                            ).copyWith(fontStyle: FontStyle.italic),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.lock_outline,
+                                size: 14,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'This page is private and locked.',
+                                style: JournalTextStyles.journalBody(
+                                  theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                  fontSize: 13.0,
+                                ).copyWith(fontStyle: FontStyle.italic),
+                              ),
+                            ],
                           )
                         else
                           Text(

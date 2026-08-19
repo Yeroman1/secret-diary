@@ -33,7 +33,7 @@ ThemeData get darkJournalTheme {
       iconTheme: const IconThemeData(color: JournalColors.darkTextPrimary),
       titleTextStyle: JournalTextStyles.uiHeader(JournalColors.darkTextPrimary),
     ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: JournalColors.darkSurface,
       selectedItemColor: JournalColors.goldAccent,
       unselectedItemColor: JournalColors.darkTextSecondary,

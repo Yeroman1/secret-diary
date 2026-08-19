@@ -46,6 +46,10 @@ class PhosphorIcons {
 
   static IconData textHOne([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.title_rounded;
 
+  static IconData textHTwo([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.text_fields_rounded;
+
+  static IconData textHThree([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.format_size_rounded;
+
   static IconData listBullets([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.format_list_bulleted_rounded;
 
   static IconData listNumbers([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.format_list_numbered_rounded;

@@ -6,13 +6,13 @@ import '../../core/theme/text_styles.dart';
 class MoodItem {
   final String key;
   final String label;
-  final String emoji;
+  final IconData icon;
   final Color color;
 
   const MoodItem({
     required this.key,
     required this.label,
-    required this.emoji,
+    required this.icon,
     required this.color,
   });
 }
@@ -22,13 +22,13 @@ class MoodPickerWidget extends StatelessWidget {
   final Function(String moodKey) onMoodSelected;
 
   static const List<MoodItem> moods = [
-    MoodItem(key: 'ecstatic', label: 'Ecstatic', emoji: '✨', color: JournalColors.moodEcstatic),
-    MoodItem(key: 'happy', label: 'Happy', emoji: '😊', color: JournalColors.moodHappy),
-    MoodItem(key: 'calm', label: 'Calm', emoji: '🌿', color: JournalColors.moodCalm),
-    MoodItem(key: 'pensive', label: 'Pensive', emoji: '🌙', color: JournalColors.moodPensive),
-    MoodItem(key: 'sad', label: 'Sad', emoji: '🌧️', color: JournalColors.moodSad),
-    MoodItem(key: 'anxious', label: 'Anxious', emoji: '⚡', color: JournalColors.moodAnxious),
-    MoodItem(key: 'angry', label: 'Angry', emoji: '🔥', color: JournalColors.moodAngry),
+    MoodItem(key: 'ecstatic', label: 'Ecstatic', icon: Icons.auto_awesome, color: JournalColors.moodEcstatic),
+    MoodItem(key: 'happy', label: 'Happy', icon: Icons.sentiment_very_satisfied, color: JournalColors.moodHappy),
+    MoodItem(key: 'calm', label: 'Calm', icon: Icons.spa, color: JournalColors.moodCalm),
+    MoodItem(key: 'pensive', label: 'Pensive', icon: Icons.psychology, color: JournalColors.moodPensive),
+    MoodItem(key: 'sad', label: 'Sad', icon: Icons.sentiment_dissatisfied, color: JournalColors.moodSad),
+    MoodItem(key: 'anxious', label: 'Anxious', icon: Icons.bolt, color: JournalColors.moodAnxious),
+    MoodItem(key: 'angry', label: 'Angry', icon: Icons.local_fire_department, color: JournalColors.moodAngry),
   ];
 
   const MoodPickerWidget({
@@ -79,7 +79,11 @@ class MoodPickerWidget extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Text(item.emoji, style: const TextStyle(fontSize: 18)),
+                  Icon(
+                    item.icon,
+                    size: 18,
+                    color: isSelected ? item.color : theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     item.label,

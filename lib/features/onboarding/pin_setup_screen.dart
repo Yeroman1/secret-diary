@@ -162,11 +162,11 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildThemeChip('candlelight', '🕯️ Candlelight'),
+                      _buildThemeChip('candlelight', 'Candlelight', Icons.light_mode_outlined),
                       const SizedBox(width: 8),
-                      _buildThemeChip('light', '☀️ Light'),
+                      _buildThemeChip('light', 'Light', Icons.wb_sunny_outlined),
                       const SizedBox(width: 8),
-                      _buildThemeChip('dark', '🌙 Dark'),
+                      _buildThemeChip('dark', 'Dark', Icons.dark_mode_outlined),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -218,11 +218,16 @@ class _PinSetupScreenState extends ConsumerState<PinSetupScreen> {
     );
   }
 
-  Widget _buildThemeChip(String mode, String label) {
+  Widget _buildThemeChip(String mode, String label, IconData icon) {
     final theme = Theme.of(context);
     final isSelected = _selectedTheme == mode;
 
     return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+      ),
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {

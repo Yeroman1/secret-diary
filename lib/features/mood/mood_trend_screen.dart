@@ -93,7 +93,7 @@ class MoodTrendScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: [
-                        Text(item.emoji, style: const TextStyle(fontSize: 16)),
+                        Icon(item.icon, size: 18, color: item.color),
                         const SizedBox(width: 8),
                         Text(item.label, style: JournalTextStyles.uiSubheader(theme.colorScheme.onSurface)),
                         const Spacer(),
@@ -140,11 +140,11 @@ class MoodTrendScreen extends ConsumerWidget {
                 }).firstOrNull;
 
                 Color tileColor = theme.colorScheme.surface;
-                String emoji = '';
+                IconData? moodIcon;
                 if (entryOnDate?.mood != null) {
                   tileColor = JournalColors.moodColorMap[entryOnDate!.mood!] ?? theme.colorScheme.primary;
                   final moodItem = MoodPickerWidget.moods.firstWhere((m) => m.key == entryOnDate.mood);
-                  emoji = moodItem.emoji;
+                  moodIcon = moodItem.icon;
                 }
 
                 return Tooltip(
@@ -158,13 +158,19 @@ class MoodTrendScreen extends ConsumerWidget {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      emoji.isNotEmpty ? emoji : '${date.day}',
-                      style: TextStyle(
-                        fontSize: emoji.isNotEmpty ? 14 : 10,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                    ),
+                    child: moodIcon != null
+                        ? Icon(
+                            moodIcon,
+                            size: 16,
+                            color: theme.colorScheme.onPrimary,
+                          )
+                        : Text(
+                            '${date.day}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          ),
                   ),
                 );
               },

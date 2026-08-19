@@ -33,7 +33,7 @@ ThemeData get lightJournalTheme {
       iconTheme: const IconThemeData(color: JournalColors.lightTextPrimary),
       titleTextStyle: JournalTextStyles.uiHeader(JournalColors.lightTextPrimary),
     ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: JournalColors.lightSurface,
       selectedItemColor: JournalColors.burgundy,
       unselectedItemColor: JournalColors.lightTextSecondary,

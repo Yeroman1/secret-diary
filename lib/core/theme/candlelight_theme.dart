@@ -33,7 +33,7 @@ ThemeData get candlelightJournalTheme {
       iconTheme: const IconThemeData(color: JournalColors.candleTextPrimary),
       titleTextStyle: JournalTextStyles.uiHeader(JournalColors.candleTextPrimary),
     ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: JournalColors.candleSurface,
       selectedItemColor: JournalColors.candleTextPrimary,
       unselectedItemColor: JournalColors.candleTextSecondary,

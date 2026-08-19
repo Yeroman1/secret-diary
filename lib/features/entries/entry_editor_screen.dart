@@ -12,6 +12,7 @@ import '../../core/theme/text_styles.dart';
 import '../../shared/widgets/wax_seal_badge.dart';
 import '../mood/mood_picker_widget.dart';
 import 'journal_provider.dart';
+import '../../shared/utils/markdown_editing_controller.dart';
 import 'widgets/markdown_toolbar.dart';
 
 class EntryEditorScreen extends ConsumerStatefulWidget {
@@ -25,7 +26,7 @@ class EntryEditorScreen extends ConsumerStatefulWidget {
 
 class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
   late TextEditingController _titleController;
-  late TextEditingController _contentController;
+  late MarkdownEditingController _contentController;
   late TextEditingController _tagController;
   final FocusNode _contentFocusNode = FocusNode();
 
@@ -44,7 +45,7 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
   void initState() {
     super.initState();
     _titleController = TextEditingController();
-    _contentController = TextEditingController();
+    _contentController = MarkdownEditingController();
     _tagController = TextEditingController();
 
     _currentEntryId = widget.entryId == 'new' ? const Uuid().v4() : widget.entryId;
