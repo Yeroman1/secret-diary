@@ -42,6 +42,8 @@ class PhosphorIcons {
 
   static IconData textItalic([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.format_italic_rounded;
 
+  static IconData textUnderline([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.format_underlined_rounded;
+
   static IconData textStrikethrough([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.strikethrough_s_rounded;
 
   static IconData textHOne([PhosphorIconsStyle style = PhosphorIconsStyle.regular]) => Icons.title_rounded;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/utils/phosphor_icons.dart';
@@ -36,7 +35,6 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
   List<String> _tags = [];
   bool _isFavorite = false;
   bool _isLocked = false;
-  bool _isPreviewMode = false;
   bool _isSaving = false;
   Timer? _debounceSaveTimer;
   DateTime _createdAt = DateTime.now();
@@ -256,18 +254,6 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                 _autoSave();
               },
             ),
-            // Live Preview Toggle
-            IconButton(
-              icon: Icon(
-                _isPreviewMode ? PhosphorIcons.pencilSimple() : PhosphorIcons.eye(),
-              ),
-              tooltip: _isPreviewMode ? 'Edit' : 'Preview',
-              onPressed: () {
-                setState(() {
-                  _isPreviewMode = !_isPreviewMode;
-                });
-              },
-            ),
             // Delete Entry Button
             IconButton(
               icon: Icon(
@@ -355,42 +341,24 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                       ),
                       const Divider(height: 24),
 
-                      // Content Editor / Markdown Preview
-                      if (_isPreviewMode)
-                        Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(minHeight: 250),
-                          child: MarkdownBody(
-                            data: _contentController.text.isEmpty
-                                ? '_Nothing written yet..._'
-                                : _contentController.text,
-                            selectable: true,
-                            styleSheet: MarkdownStyleSheet(
-                              p: JournalTextStyles.journalBody(theme.colorScheme.onSurface),
-                              h1: JournalTextStyles.journalTitle(theme.colorScheme.onSurface),
-                              h2: JournalTextStyles.uiHeader(theme.colorScheme.onSurface),
-                              blockquote: JournalTextStyles.journalQuote(theme.colorScheme.onSurface),
-                            ),
+                      // Live Rich-Text Content Editor
+                      TextField(
+                        controller: _contentController,
+                        focusNode: _contentFocusNode,
+                        maxLines: null,
+                        style: JournalTextStyles.journalBody(theme.colorScheme.onSurface),
+                        decoration: InputDecoration(
+                          hintText: 'Write your thoughts out loud...',
+                          hintStyle: JournalTextStyles.journalBody(
+                            theme.colorScheme.onSurface.withValues(alpha: 0.4),
                           ),
-                        )
-                      else
-                        TextField(
-                          controller: _contentController,
-                          focusNode: _contentFocusNode,
-                          maxLines: null,
-                          style: JournalTextStyles.journalBody(theme.colorScheme.onSurface),
-                          decoration: InputDecoration(
-                            hintText: 'Write your thoughts out loud...',
-                            hintStyle: JournalTextStyles.journalBody(
-                              theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            fillColor: Colors.transparent,
-                          ),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          fillColor: Colors.transparent,
                         ),
+                      ),
 
                       const SizedBox(height: 32),
                       // Tag Chips Section
@@ -425,12 +393,11 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                   ),
                 ),
               ),
-              // Markdown Toolbar when editing
-              if (!_isPreviewMode)
-                MarkdownToolbar(
-                  controller: _contentController,
-                  focusNode: _contentFocusNode,
-                ),
+              // Live Formatting Toolbar
+              MarkdownToolbar(
+                controller: _contentController,
+                focusNode: _contentFocusNode,
+              ),
             ],
           ),
         ),

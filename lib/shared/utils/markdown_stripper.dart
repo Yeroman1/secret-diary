@@ -5,16 +5,20 @@ class MarkdownStripper {
 
     String text = markdown;
 
+    // HTML tags like <u>, </u>, <ins>, <del>, <s>, etc.
+    text = text.replaceAll(RegExp(r'</?(?:u|ins|b|i|strong|em|p|span|div|del|s)[^>]*>', caseSensitive: false), '');
     // Headers #
     text = text.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
     // Bold / Italics * or _
     text = text.replaceAll(RegExp(r'\*{1,3}|_{1,3}'), '');
+    // Strikethrough ~~
+    text = text.replaceAll(RegExp(r'~~'), '');
     // Links [text](url) -> text
     text = text.replaceAll(RegExp(r'\[([^\]]+)\]\([^\)]+\)'), r'$1');
     // Inline code `code`
     text = text.replaceAll(RegExp(r'`{1,3}[^`]*`{1,3}'), '');
     // Blockquotes >
-    text = text.replaceAll(RegExp(r'^\s*>\s+', multiLine: true), '');
+    text = text.replaceAll(RegExp(r'^\s*>\s*', multiLine: true), '');
     // Unordered lists - * +
     text = text.replaceAll(RegExp(r'^\s*[\-\*\+]\s+', multiLine: true), '');
     // Ordered lists 1.
@@ -25,3 +29,4 @@ class MarkdownStripper {
     return text.replaceAll(RegExp(r'\n+'), ' ').trim();
   }
 }
+
