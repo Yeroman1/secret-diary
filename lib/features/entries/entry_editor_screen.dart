@@ -346,6 +346,9 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                         controller: _contentController,
                         focusNode: _contentFocusNode,
                         maxLines: null,
+                        inputFormatters: const [
+                          MarkdownTextInputFormatter(),
+                        ],
                         style: JournalTextStyles.journalBody(theme.colorScheme.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Write your thoughts out loud...',

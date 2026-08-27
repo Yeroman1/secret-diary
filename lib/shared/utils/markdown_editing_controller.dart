@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// A custom TextEditingController that styles Markdown syntax in real time
 /// so bold appears bold, italic appears italic, underline appears underlined,
@@ -362,3 +363,241 @@ class MarkdownEditingController extends TextEditingController {
     }
   }
 }
+
+/// A specialized TextInputFormatter for Markdown editing that prevents formatting
+/// syntax clashes when the user presses Enter to start a new line.
+///
+/// Features:
+/// 1. Keeps closing formatting delimiters (e.g. `**`, `*`, `</u>`, `~~`, `` ` ``, `***`) on the current line.
+/// 2. If splitting in the middle of active formatting, cleanly closes on line 1 and re-opens on line 2.
+/// 3. Intelligently continues lists (bullet `- `, numbered `1. `, checklists `- [ ] `, quotes `> `).
+/// 4. Exits lists/empty formatting cleanly when Enter is pressed on an empty item.
+class MarkdownTextInputFormatter extends TextInputFormatter {
+  const MarkdownTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.length <= oldValue.text.length) {
+      return newValue;
+    }
+
+    final oldText = oldValue.text;
+    final newText = newValue.text;
+    final oldSelection = oldValue.selection;
+
+    final oldStart = oldSelection.isValid ? oldSelection.start : 0;
+    final oldEnd = oldSelection.isValid ? oldSelection.end : 0;
+    final minSel = oldStart < oldEnd ? oldStart : oldEnd;
+    final maxSel = oldStart < oldEnd ? oldEnd : oldStart;
+
+    final insertedLen = newText.length - (oldText.length - (maxSel - minSel));
+    if (insertedLen <= 0) return newValue;
+
+    final insertPos = minSel;
+    if (insertPos < 0 || insertPos + insertedLen > newText.length) return newValue;
+
+    final insertedStr = newText.substring(insertPos, insertPos + insertedLen);
+    if (!insertedStr.contains('\n')) {
+      return newValue;
+    }
+
+    return handleNewline(oldText, minSel, maxSel, insertedStr);
+  }
+
+  static TextEditingValue handleNewline(
+    String oldText,
+    int selStart,
+    int selEnd,
+    String insertedStr,
+  ) {
+    int lineStart = oldText.lastIndexOf('\n', selStart > 0 ? selStart - 1 : 0);
+    lineStart = lineStart == -1 ? 0 : lineStart + 1;
+
+    int lineEnd = oldText.indexOf('\n', selEnd);
+    lineEnd = lineEnd == -1 ? oldText.length : lineEnd;
+
+    final lineBeforeCursor = oldText.substring(lineStart, selStart);
+    final lineAfterCursor = oldText.substring(selEnd, lineEnd);
+    final fullLine = oldText.substring(lineStart, lineEnd);
+
+    // 1. Check if the line is an empty list/heading/quote item (e.g. "- ", "1. ", "- [ ] ", "> ", "# ")
+    final emptyPrefixMatch = RegExp(r'^(#{1,6}\s*|- \[\s?[xX]?\]\s*|- \s*|\* \s*|\+ \s*|\d+\.\s*|> \s*)$').firstMatch(fullLine);
+    if (emptyPrefixMatch != null && lineBeforeCursor.trim() == fullLine.trim()) {
+      final beforeLineBlock = oldText.substring(0, lineStart);
+      final afterLineBlock = oldText.substring(lineEnd);
+      final newContent = '$beforeLineBlock\n$afterLineBlock';
+      return TextEditingValue(
+        text: newContent,
+        selection: TextSelection.collapsed(offset: lineStart + 1),
+      );
+    }
+
+    // 2. Check if cursor is sitting inside empty inline formatting (e.g. "**|**", "*|*", "<u>|</u>", "**<u>|</u>**", "~~|~~", "`|`")
+    final emptyFormatMarkers = [
+      ('***', '***'),
+      ('___', '___'),
+      ('**<u>', '</u>**'),
+      ('<u>**', '**</u>'),
+      ('**', '**'),
+      ('__', '__'),
+      ('<u>', '</u>'),
+      ('*<u>', '</u>*'),
+      ('<u>*', '*</u>'),
+      ('*', '*'),
+      ('_', '_'),
+      ('~~', '~~'),
+      ('`', '`'),
+    ];
+
+    for (final (openTag, closeTag) in emptyFormatMarkers) {
+      if (lineBeforeCursor.endsWith(openTag) && lineAfterCursor.startsWith(closeTag)) {
+        if (lineBeforeCursor == openTag && lineAfterCursor == closeTag) {
+          final beforeLineBlock = oldText.substring(0, lineStart);
+          final afterLineBlock = oldText.substring(lineEnd);
+          final newContent = '$beforeLineBlock\n$afterLineBlock';
+          return TextEditingValue(
+            text: newContent,
+            selection: TextSelection.collapsed(offset: lineStart + 1),
+          );
+        }
+      }
+    }
+
+    // 3. Inspect line-level continuation prefix (Lists, Checklists, Blockquotes)
+    String continuationPrefix = '';
+    final checklistMatch = RegExp(r'^- \[\s?[xX]?\]\s+').firstMatch(lineBeforeCursor);
+    final numberedMatch = RegExp(r'^(\d+)\.\s+').firstMatch(lineBeforeCursor);
+    final bulletMatch = RegExp(r'^(- |\* |\+ )').firstMatch(lineBeforeCursor);
+    final quoteMatch = RegExp(r'^> ').firstMatch(lineBeforeCursor);
+
+    if (checklistMatch != null) {
+      continuationPrefix = '- [ ] ';
+    } else if (numberedMatch != null) {
+      final currentNum = int.tryParse(numberedMatch.group(1) ?? '1') ?? 1;
+      continuationPrefix = '${currentNum + 1}. ';
+    } else if (bulletMatch != null) {
+      continuationPrefix = bulletMatch.group(0)!;
+    } else if (quoteMatch != null) {
+      continuationPrefix = '> ';
+    }
+
+    // 4. Inspect active inline tags at cursor on this line
+    final activeTags = _computeActiveInlineTags(lineBeforeCursor);
+    final isAfterOnlyClosingTags = _isOnlyClosingTags(lineAfterCursor, activeTags);
+
+    if (isAfterOnlyClosingTags && activeTags.isNotEmpty) {
+      // Keep closing delimiters on line 1 so line 1 is fully styled and closed,
+      // and line 2 starts clean without orphaned closing syntax.
+      final beforeLineBlock = oldText.substring(0, lineStart);
+      final line1 = '$lineBeforeCursor$lineAfterCursor';
+      final afterLineBlock = oldText.substring(lineEnd);
+
+      final newContent = '$beforeLineBlock$line1\n$continuationPrefix$afterLineBlock';
+      final newCursorOffset = beforeLineBlock.length + line1.length + 1 + continuationPrefix.length;
+
+      return TextEditingValue(
+        text: newContent,
+        selection: TextSelection.collapsed(offset: newCursorOffset),
+      );
+    }
+
+    // 5. If cursor is in the MIDDLE of formatted text with content after cursor (e.g. "**Part 1 | Part 2**")
+    if (activeTags.isNotEmpty && lineAfterCursor.isNotEmpty) {
+      final closingTags = activeTags.reversed.map(_getClosingTag).join();
+      final openingTags = activeTags.join();
+
+      final beforeLineBlock = oldText.substring(0, lineStart);
+      final line1 = '$lineBeforeCursor$closingTags';
+      final line2 = '$continuationPrefix$openingTags$lineAfterCursor';
+      final afterLineBlock = oldText.substring(lineEnd);
+
+      final newContent = '$beforeLineBlock$line1\n$line2$afterLineBlock';
+      final newCursorOffset = beforeLineBlock.length + line1.length + 1 + continuationPrefix.length + openingTags.length;
+
+      return TextEditingValue(
+        text: newContent,
+        selection: TextSelection.collapsed(offset: newCursorOffset),
+      );
+    }
+
+    // 6. Normal line break with continuation prefix
+    final beforeCursorAll = oldText.substring(0, selStart);
+    final afterCursorAll = oldText.substring(selEnd);
+    final newContent = '$beforeCursorAll\n$continuationPrefix$afterCursorAll';
+    final newCursorOffset = beforeCursorAll.length + 1 + continuationPrefix.length;
+
+    return TextEditingValue(
+      text: newContent,
+      selection: TextSelection.collapsed(offset: newCursorOffset),
+    );
+  }
+
+  static List<String> _computeActiveInlineTags(String text) {
+    final active = <String>[];
+
+    final tripleStars = RegExp(r'\*\*\*').allMatches(text).length;
+    final doubleStars = RegExp(r'(?<!\*)\*\*(?!\*)').allMatches(text).length;
+    final singleStars = RegExp(r'(?<!\*)\*(?!\*)').allMatches(text).length;
+
+    final uOpen = RegExp(r'<(?:u|ins)\b[^>]*>', caseSensitive: false).allMatches(text).length;
+    final uClose = RegExp(r'</(?:u|ins)>', caseSensitive: false).allMatches(text).length;
+
+    final bOpen = RegExp(r'<(?:b|strong)\b[^>]*>', caseSensitive: false).allMatches(text).length;
+    final bClose = RegExp(r'</(?:b|strong)>', caseSensitive: false).allMatches(text).length;
+
+    final iOpen = RegExp(r'<(?:i|em)\b[^>]*>', caseSensitive: false).allMatches(text).length;
+    final iClose = RegExp(r'</(?:i|em)>', caseSensitive: false).allMatches(text).length;
+
+    final strikeCount = RegExp(r'~~').allMatches(text).length;
+    final codeCount = RegExp(r'(?<!`)`(?!`)').allMatches(text).length;
+
+    if (tripleStars % 2 == 1) {
+      active.add('***');
+    } else {
+      if (doubleStars % 2 == 1 || bOpen > bClose) {
+        active.add('**');
+      }
+      if (singleStars % 2 == 1 || iOpen > iClose) {
+        active.add('*');
+      }
+    }
+
+    if (uOpen > uClose) {
+      active.add('<u>');
+    }
+
+    if (strikeCount % 2 == 1) {
+      active.add('~~');
+    }
+
+    if (codeCount % 2 == 1) {
+      active.add('`');
+    }
+
+    return active;
+  }
+
+  static String _getClosingTag(String openTag) {
+    return switch (openTag) {
+      '<u>' => '</u>',
+      '<b>' => '</b>',
+      '<strong>' => '</strong>',
+      '<i>' => '</i>',
+      '<em>' => '</em>',
+      _ => openTag,
+    };
+  }
+
+  static bool _isOnlyClosingTags(String text, List<String> activeTags) {
+    if (text.isEmpty) return false;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+
+    final closingPattern = RegExp(r'^((\*\*|\*|</u>|</ins>|</b>|</strong>|</i>|</em>|\*\*\*|~~|`|\s)+)$', caseSensitive: false);
+    return closingPattern.hasMatch(trimmed);
+  }
+}
+

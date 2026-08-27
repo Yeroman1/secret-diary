@@ -270,9 +270,9 @@ class MarkdownToolbar extends StatelessWidget {
         _refocus();
         return;
       } else if (openMarker == '*') {
-        final newText = text.replaceRange(start, start, '**');
+        final newText = '${text.substring(0, start)}**${text.substring(start)}';
         controller.value = TextEditingValue(
-          text: text.substring(0, start) + '*' + '*' + text.substring(start),
+          text: newText,
           selection: TextSelection.collapsed(offset: start + 1),
         );
         _refocus();
@@ -300,8 +300,9 @@ class MarkdownToolbar extends StatelessWidget {
         _refocus();
         return;
       } else if (openMarker == '**') {
+        final newText = '${text.substring(0, start)}****${text.substring(start)}';
         controller.value = TextEditingValue(
-          text: text.substring(0, start) + '**' + '**' + text.substring(start),
+          text: newText,
           selection: TextSelection.collapsed(offset: start + 2),
         );
         _refocus();

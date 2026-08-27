@@ -480,5 +480,200 @@ void main() {
       final stripped = MarkdownStripper.strip(input);
       expect(stripped, 'Bold Italic Underlined and Bold Underlined');
     });
+
+    group('MarkdownTextInputFormatter Enter/newline tests', () {
+      test('Pressing Enter inside bold formatting keeps closing markers on Line 1 and starts Line 2 clean', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '**My secret bold entry**',
+          selection: TextSelection.collapsed(offset: 22), // cursor right before '**'
+        );
+        const newVal = TextEditingValue(
+          text: '**My secret bold entry\n**',
+          selection: TextSelection.collapsed(offset: 23),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '**My secret bold entry**\n');
+        expect(result.selection.baseOffset, 25); // At beginning of new line (offset 25)
+      });
+
+      test('Pressing Enter inside italic formatting keeps closing marker on Line 1', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '*Italic note*',
+          selection: TextSelection.collapsed(offset: 12), // right before '*'
+        );
+        const newVal = TextEditingValue(
+          text: '*Italic note\n*',
+          selection: TextSelection.collapsed(offset: 13),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '*Italic note*\n');
+        expect(result.selection.baseOffset, 14);
+      });
+
+      test('Pressing Enter inside underline formatting keeps </u> on Line 1', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '<u>Underlined text</u>',
+          selection: TextSelection.collapsed(offset: 18), // right before '</u>'
+        );
+        const newVal = TextEditingValue(
+          text: '<u>Underlined text\n</u>',
+          selection: TextSelection.collapsed(offset: 19),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '<u>Underlined text</u>\n');
+        expect(result.selection.baseOffset, 23);
+      });
+
+      test('Pressing Enter inside nested bold + underline keeps </u>** on Line 1', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '**<u>Bold & Underlined</u>**',
+          selection: TextSelection.collapsed(offset: 22), // right before '</u>**'
+        );
+        const newVal = TextEditingValue(
+          text: '**<u>Bold & Underlined\n</u>**',
+          selection: TextSelection.collapsed(offset: 23),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '**<u>Bold & Underlined</u>**\n');
+        expect(result.selection.baseOffset, 29);
+      });
+
+      test('Pressing Enter inside bold-italic *** keeps closing *** on Line 1', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '***Bold & Italic***',
+          selection: TextSelection.collapsed(offset: 16), // right before '***'
+        );
+        const newVal = TextEditingValue(
+          text: '***Bold & Italic\n***',
+          selection: TextSelection.collapsed(offset: 17),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '***Bold & Italic***\n');
+        expect(result.selection.baseOffset, 20);
+      });
+
+      test('Pressing Enter in middle of bold splits and closes line 1, reopens on line 2', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '**First part second part**',
+          selection: TextSelection.collapsed(offset: 12), // between 'part' and ' second'
+        );
+        const newVal = TextEditingValue(
+          text: '**First part\n second part**',
+          selection: TextSelection.collapsed(offset: 13),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '**First part**\n** second part**');
+        expect(result.selection.baseOffset, 17); // Offset after '\n**'
+      });
+
+      test('Pressing Enter on empty bold marker deletes empty tags and starts fresh newline', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '****',
+          selection: TextSelection.collapsed(offset: 2), // **|**
+        );
+        const newVal = TextEditingValue(
+          text: '**\n**',
+          selection: TextSelection.collapsed(offset: 3),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '\n');
+        expect(result.selection.baseOffset, 1);
+      });
+
+      test('Pressing Enter on bullet list continues bullet on next line', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '- Buy groceries',
+          selection: TextSelection.collapsed(offset: 15),
+        );
+        const newVal = TextEditingValue(
+          text: '- Buy groceries\n',
+          selection: TextSelection.collapsed(offset: 16),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '- Buy groceries\n- ');
+        expect(result.selection.baseOffset, 18);
+      });
+
+      test('Pressing Enter on empty bullet list exits the list', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '- ',
+          selection: TextSelection.collapsed(offset: 2),
+        );
+        const newVal = TextEditingValue(
+          text: '- \n',
+          selection: TextSelection.collapsed(offset: 3),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '\n');
+        expect(result.selection.baseOffset, 1);
+      });
+
+      test('Pressing Enter on numbered list increments number on next line', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '1. Step one',
+          selection: TextSelection.collapsed(offset: 11),
+        );
+        const newVal = TextEditingValue(
+          text: '1. Step one\n',
+          selection: TextSelection.collapsed(offset: 12),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '1. Step one\n2. ');
+        expect(result.selection.baseOffset, 15);
+      });
+
+      test('Pressing Enter on empty numbered list exits the list', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '2. ',
+          selection: TextSelection.collapsed(offset: 3),
+        );
+        const newVal = TextEditingValue(
+          text: '2. \n',
+          selection: TextSelection.collapsed(offset: 4),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '\n');
+        expect(result.selection.baseOffset, 1);
+      });
+
+      test('Pressing Enter on checklist item continues checklist on next line', () {
+        const formatter = MarkdownTextInputFormatter();
+        const oldVal = TextEditingValue(
+          text: '- [ ] Do laundry',
+          selection: TextSelection.collapsed(offset: 16),
+        );
+        const newVal = TextEditingValue(
+          text: '- [ ] Do laundry\n',
+          selection: TextSelection.collapsed(offset: 17),
+        );
+
+        final result = formatter.formatEditUpdate(oldVal, newVal);
+        expect(result.text, '- [ ] Do laundry\n- [ ] ');
+        expect(result.selection.baseOffset, 23);
+      });
+    });
   });
 }
+
