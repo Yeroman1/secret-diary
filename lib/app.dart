@@ -15,12 +15,14 @@ class SecDiaryApp extends ConsumerStatefulWidget {
   ConsumerState<SecDiaryApp> createState() => _SecDiaryAppState();
 }
 
-class _SecDiaryAppState extends ConsumerState<SecDiaryApp> {
+class _SecDiaryAppState extends ConsumerState<SecDiaryApp> with WidgetsBindingObserver {
   late AutoLockManager _autoLockManager;
+  bool _hideContent = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _autoLockManager = AutoLockManager(
       onTriggerLock: () {
         ref.read(authProvider.notifier).lock();
@@ -35,8 +37,18 @@ class _SecDiaryAppState extends ConsumerState<SecDiaryApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoLockManager.stopObserving();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() {
+      _hideContent = state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.paused ||
+          state == AppLifecycleState.hidden;
+    });
   }
 
   ThemeData _getThemeData(String themeModeName) {
@@ -61,6 +73,27 @@ class _SecDiaryAppState extends ConsumerState<SecDiaryApp> {
       debugShowCheckedModeBanner: false,
       theme: _getThemeData(settings.themeModeName),
       routerConfig: router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            if (_hideContent)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: Center(
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
+
