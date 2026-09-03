@@ -1,6 +1,6 @@
 # secret_diary
 
-A new Flutter project.
+A Flutter project.
 
 ## Getting Started
 
